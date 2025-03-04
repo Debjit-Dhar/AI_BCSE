@@ -1,59 +1,75 @@
 import heapq
 
-
-def pfunc(h):
-    return h 
-
-def ucs(graph, start, goals):
-    pq = []  # Priority queue
-    g = []  # Stores reached goal nodes
-    parent = {}  # Parent dictionary for path reconstruction
-    visited = [False] * len(graph)
+def cal_heuristic(graph):
+    h = [0] * len(graph)
     
-    heapq.heappush(pq, (pfunc(0), (start, 0)))  # (f-score, (node, g-cost))
-    
+    return h
+
+def fscore(g, h):
+    return g + h
+
+def astar(graph, start, goals):
+    pq = []
+    parent = {}
+    visited = set()  # Using a set for efficiency
+    g_score = {i: float('inf') for i in range(len(graph))}  # g(n): cost to reach node
+    f_score = {i: float('inf') for i in range(len(graph))}  # f(n): estimated total cost
+
+    h = cal_heuristic(graph)
+    g_score[start] = 0
+    f_score[start] = fscore(0, h[start])
+
+    heapq.heappush(pq, (f_score[start], start))
+
     while pq:
-        f_score, (u, cost) = heapq.heappop(pq)  # Get the lowest f-score node
-        
-        if visited[u]:
-            continue  # Skip already visited nodes
-        
-        visited[u] = True
-        print(f"Visiting node {u} with cost {cost}")
-        
+        _, u = heapq.heappop(pq)
+
+        if u in visited:
+            continue
+
+        print(f"Visiting node {u} with cost {g_score[u]}")
+        visited.add(u)
+
         if u in goals:
-            g.append((u, cost))
-            if len(g) == len(goals):  # If all goals are reached
-                print("Goal Reached")
-                u, cost = min(g, key=lambda x: x[1])  # Get the least cost goal
-                path = reconstruct_path(parent, u, start)
-                print("Path:", path)
-                return path
+            print('Goal Reached')
+            path_taken = path(parent, start, u)
+            print(path_taken)
+            return True
 
         for i in range(len(graph)):
-            if graph[u][i] > 0 and not visited[i]:  # Valid neighbor
-                new_cost = cost + graph[u][i]
-                heapq.heappush(pq, (pfunc(new_cost), (i, new_cost)))
-                parent[i] = u
+            if graph[u][i] != 0 and i not in visited:
+                new_g = g_score[u] + graph[u][i]
+                new_f = fscore(new_g, h[i])
 
-def reconstruct_path(parent, goal, start):
-    """Reconstructs the path from goal to start using the parent dictionary."""
-    path = [goal]
-    while goal in parent:
+                if new_f < f_score[i]:  # Update only if a better path is found
+                    g_score[i] = new_g
+                    f_score[i] = new_f
+                    heapq.heappush(pq, (new_f, i))
+                    parent[i] = u  # Store the parent for path reconstruction
+
+    print('No goal found')
+    return False
+
+def path(parent, start, goal):
+    path = []
+    while goal != start:
+        path.insert(0, goal)
         goal = parent[goal]
-        path.append(goal)
-    path.reverse()
+    path.insert(0, goal)
     return path
 
-graph = [[0,2,1,0,1,0,0], 
-         [2,0,4,8,0,7,0], 
-         [1,4,0,0,0,15,0], 
-         [0,8,0,0,0,0,0],
-         [1,0,0,0,0,0,0],
-         [0,7,15,0,0,0,1],
-         [0,0,0,0,0,1,0]]
+# Graph Definition
+graph = [[0, 2, 1, 0, 1, 0, 0], 
+         [2, 0, 4, 8, 0, 7, 0], 
+         [1, 4, 0, 0, 0, 15, 0], 
+         [0, 8, 0, 0, 0, 0, 0],
+         [1, 0, 0, 0, 0, 0, 0],
+         [0, 7, 15, 0, 0, 0, 1],
+         [0, 0, 0, 0, 0, 1, 0]]
 
 start = 0
 goals = [6]
-ucs(graph, start, goals)
+
+print('Order of Nodes visited')
+astar(graph, start, goals)
 
